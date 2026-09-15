@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Adventure RPG</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: #111;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 640px;
+            height: 640px;
+            border: 4px solid #444;
+            background-color: #000;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        canvas {
+            display: block;
+            background-color: #222;
+        }
+
+        /* --- UI OVERLAYS & MENUS --- */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1 {
+            font-size: 36px;
+            color: #f1c40f;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px #000;
+        }
+
+        .menu-btn {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border: 2px solid #34495e;
+            padding: 12px 24px;
+            margin: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 220px;
+            text-align: center;
+            transition: 0.2s;
+        }
+
+        .menu-btn:hover {
+            background: #e67e22;
+            color: #fff;
+            border-color: #d35400;
+        }
+
+        /* HUD Overlay */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        #dialogue-box {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #f1c40f;
+            padding: 15px;
+            color: #fff;
+            font-size: 14px;
+            z-index: 6;
+            line-height: 1.4;
+        }
+
+        .instructions {
+            max-width: 450px;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #bdc3c7;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas" width="640" height="640"></canvas>
+
+    <!-- In-Game HUD -->
+    <div id="hud" class="hidden">
+        <div>HP: <span id="hp-display" style="color:#e74c3c;">100</span></div>
+        <div>Gold: <span id="gold-display" style="color:#f1c40f;">0</span></div>
+        <div>Key: <span id="key-display" style="color:#3498db;">No</span></div>
+    </div>
+
+    <!-- Dialogue / Message Box -->
+    <div id="dialogue-box" class="hidden">
+        <span id="dialogue-text">Welcome adventurer!</span>
+    </div>
+
+    <!-- MAIN MENU -->
+    <div id="main-menu" class="overlay">
+        <h1>HERO'S QUEST</h1>
+        <button class="menu-btn" onclick="startGame(false)">New Game</button>
+        <button class="menu-btn" onclick="startGame(true)">Load Game</button>
+        <button class="menu-btn" onclick="showScreen('controls-screen')">How to Play</button>
+    </div>
+
+    <!-- HOW TO PLAY SCREEN -->
+    <div id="controls-screen" class="overlay hidden">
+        <h1>HOW TO PLAY</h1>
+        <div class="instructions">
+            <p><strong>Move:</strong> W, A, S, D or Arrow Keys</p>
+            <p><strong>Pause / Menu:</strong> Press ESC</p>
+            <br>
+            <p><strong>Tiles Legend:</strong></p>
+            <p><span style="color:#3498db;">🧙 Old Man:</span> Gives quest & Key</p>
+            <p><span style="color:#e74c3c;">👾 Goblin:</span> Fight for gold (-20 HP)</p>
+            <p><span style="color:#2ecc71;">🧪 Potion:</span> Restores +30 HP</p>
+            <p><span style="color:#f1c40f;">🪙 Gold:</span> Adds +10 Gold</p>
+            <p><span style="color:#e67e22;">🚪 Gate:</span> Requires Key to win!</p>
+        </div>
+        <button class="menu-btn" onclick="showScreen('main-menu')">Back</button>
+    </div>
+
+    <!-- PAUSE MENU -->
+    <div id="pause-menu" class="overlay hidden">
+        <h1>PAUSED</h1>
+        <button class="menu-btn" onclick="resumeGame()">Resume</button>
+        <button class="menu-btn" onclick="saveGame()">Save Game</button>
+        <button class="menu-btn" onclick="quitToMainMenu()">Main Menu</button>
+    </div>
+
+    <!-- GAME OVER / VICTORY MENU -->
+    <div id="end-screen" class="overlay hidden">
+        <h1 id="end-title">GAME OVER</h1>
+        <p id="end-msg" class="instructions"></p>
+        <button class="menu-btn" onclick="showScreen('main-menu')">Main Menu</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const TILE_SIZE = 40;
+    const GRID_SIZE = 16; // 16x16 grid = 640x640 canvas
+
+    // Game States
+    let isPaused = false;
+    let inGame = false;
+    let dialogueTimeout;
+
+    // Player State
+    let player = {
+        x: 1,
+        y: 1,
+        hp: 100,
+        gold: 0,
+        hasKey: false
+    };
+
+    // World Map Layout (16x16)
+    // 0: Floor, 1: Wall, 2: Potion, 3: Gold, 4: Goblin, 5: NPC, 6: Locked Gate
+    const initialMap = [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,0,0,0,1,0,3,0,0,0,0,1,0,3,0,1],
+        [1,0,1,0,1,0,1,1,1,1,0,1,0,1,0,1],
+        [1,0,1,0,0,0,0,4,0,1,0,0,0,1,0,1],
+        [1,0,1,1,1,1,1,0,0,1,1,1,0,1,0,1],
+        [1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1],
+        [1,1,1,0,1,0,1,1,1,0,0,1,1,1,0,1],
+        [1,3,0,0,1,0,0,5,1,0,0,0,0,1,0,1],
+        [1,0,1,1,1,1,1,0,1,1,1,1,0,1,0,1],
+        [1,0,0,0,4,0,0,0,0,0,4,0,0,0,0,1],
+        [1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1],
+        [1,2,0,0,1,0,0,0,0,0,0,0,0,1,0,1],
+        [1,0,1,0,1,1,1,1,1,1,1,0,0,1,0,1],
+        [1,0,1,0,0,0,0,0,3,0,1,0,0,1,0,1],
+        [1,0,1,1,1,1,1,1,1,0,1,0,0,6,0,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
+
+    let currentMap = [];
+
+    // --- NAVIGATION & UI FUNCTIONS ---
+    function showScreen(screenId) {
+        document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+        if (screenId) {
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+    }
+
+    function updateHUD() {
+        document.getElementById('hp-display').innerText = player.hp;
+        document.getElementById('gold-display').innerText = player.gold;
+        document.getElementById('key-display').innerText = player.hasKey ? "Yes" : "No";
+    }
+
+    function showDialogue(text) {
+        const box = document.getElementById('dialogue-box');
+        document.getElementById('dialogue-text').innerText = text;
+        box.classList.remove('hidden');
+        
+        clearTimeout(dialogueTimeout);
+        dialogueTimeout = setTimeout(() => {
+            box.classList.add('hidden');
+        }, 4000);
+    }
+
+    // --- GAME ENGINE LOGIC ---
+    function startGame(isLoad) {
+        if (isLoad) {
+            if (!localStorage.getItem('heroQuestSave')) {
+                alert("No saved game file found!");
+                return;
+            }
+            loadGame();
+        } else {
+            // New Game Setup
+            player = { x: 1, y: 1, hp: 100, gold: 0, hasKey: false };
+            currentMap = JSON.parse(JSON.stringify(initialMap));
+        }
+
+        inGame = true;
+        isPaused = false;
+        showScreen(null);
+        document.getElementById('hud').classList.remove('hidden');
+        showDialogue("Explore the dungeon! Speak to the Wizard to find the key.");
+        updateHUD();
+        render();
+    }
+
+    function togglePause() {
+        if (!inGame) return;
+        isPaused = !isPaused;
+        if (isPaused) {
+            showScreen('pause-menu');
+        } else {
+            showScreen(null);
+        }
+    }
+
+    function resumeGame() {
+        isPaused = false;
+        showScreen(null);
+    }
+
+    function quitToMainMenu() {
+        inGame = false;
+        isPaused = false;
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('dialogue-box').classList.add('hidden');
+        showScreen('main-menu');
+    }
+
+    // --- SAVE / LOAD SYSTEM ---
+    function saveGame() {
+        const saveData = {
+            player: player,
+            map: currentMap
+        };
+        localStorage.setItem('heroQuestSave', JSON.stringify(saveData));
+        showDialogue("Game saved successfully!");
+        setTimeout(() => resumeGame(), 1000);
+    }
+
+    function loadGame() {
+        const saved = JSON.parse(localStorage.getItem('heroQuestSave'));
+        if (saved) {
+            player = saved.player;
+            currentMap = saved.map;
+        }
+    }
+
+    // --- INPUT HANDLING ---
+    window.addEventListener('keydown', (e) => {
+        if (e.key === "Escape") {
+            togglePause();
+            return;
+        }
+
+        if (!inGame || isPaused) return;
+
+        let dx = 0;
+        let dy = 0;
+
+        if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") dy = -1;
+        if (e.key === "ArrowDown" || e.key.toLowerCase() === "s") dy = 1;
+        if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") dx = -1;
+        if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") dx = 1;
+
+        if (dx !== 0 || dy !== 0) {
+            movePlayer(dx, dy);
+        }
+    });
+
+    // --- GAME LOGIC & INTERACTIONS ---
+    function movePlayer(dx, dy) {
+        const newX = player.x + dx;
+        const newY = player.y + dy;
+        const tile = currentMap[newY][newX];
+
+        // Wall Collision
+        if (tile === 1) return;
+
+        // Interaction processing
+        if (tile === 2) { // Health Potion
+            player.hp = Math.min(100, player.hp + 30);
+            currentMap[newY][newX] = 0;
+            showDialogue("Found a Health Potion! Restored +30 HP.");
+        } else if (tile === 3) { // Gold
+            player.gold += 10;
+            currentMap[newY][newX] = 0;
+            showDialogue("Picked up 10 Gold coins!");
+        } else if (tile === 4) { // Goblin
+            player.hp -= 20;
+            player.gold += 15;
+            currentMap[newY][newX] = 0;
+            showDialogue("Defeated a Goblin! Took 20 damage, gained 15 Gold.");
+        } else if (tile === 5) { // Wizard / Quest NPC
+            if (player.gold >= 20) {
+                player.hasKey = true;
+                showDialogue("Wizard: 'Aha! For 20 gold I will give you the Gate Key. Go escape!'");
+            } else {
+                showDialogue("Wizard: 'Bring me 20 Gold and I will grant you the Gate Key!'");
+            }
+        } else if (tile === 6) { // Gate
+            if (player.hasKey) {
+                endGame(true, "CONGRATULATIONS!", "You unlocked the gate and escaped the dungeon!");
+                return;
+            } else {
+                showDialogue("The gate is locked tight! You need a Key to open it.");
+                return;
+            }
+        }
+
+        // Apply Movement
+        player.x = newX;
+        player.y = newY;
+        updateHUD();
+
+        // Check Death Condition
+        if (player.hp <= 0) {
+            endGame(false, "GAME OVER", "You succumbed to the hazards of the dungeon!");
+        }
+
+        render();
+    }
+
+    function endGame(isVictory, title, message) {
+        inGame = false;
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('dialogue-box').classList.add('hidden');
+        
+        document.getElementById('end-title').innerText = title;
+        document.getElementById('end-title').style.color = isVictory ? "#2ecc71" : "#e74c3c";
+        document.getElementById('end-msg').innerText = message;
+        
+        showScreen('end-screen');
+    }
+
+    // --- RENDERING ENGINE ---
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Map
+        for (let row = 0; row < GRID_SIZE; row++) {
+            for (let col = 0; col < GRID_SIZE; col++) {
+                const tile = currentMap[row][col];
+                const x = col * TILE_SIZE;
+                const y = row * TILE_SIZE;
+
+                // Ground Tile Base
+                ctx.fillStyle = "#1e272c";
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+
+                // Tile Details
+                if (tile === 1) { // Wall
+                    ctx.fillStyle = "#34495e";
+                    ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                    ctx.strokeStyle = "#2c3e50";
+                    ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+                } else if (tile === 2) { // Potion
+                    drawEmoji("🧪", x, y);
+                } else if (tile === 3) { // Gold
+                    drawEmoji("🪙", x, y);
+                } else if (tile === 4) { // Goblin
+                    drawEmoji("👾", x, y);
+                } else if (tile === 5) { // Wizard
+                    drawEmoji("🧙", x, y);
+                } else if (tile === 6) { // Gate
+                    ctx.fillStyle = "#d35400";
+                    ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                    drawEmoji("🚪", x, y);
+                }
+            }
+        }
+
+        // Draw Player
+        drawEmoji("🗡️", player.x * TILE_SIZE, player.y * TILE_SIZE);
+    }
+
+    function drawEmoji(emoji, x, y) {
+        ctx.font = "24px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(emoji, x + TILE_SIZE / 2, y + TILE_SIZE / 2);
+    }
+</script>
+
+</body>
+</html>
