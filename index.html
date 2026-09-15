@@ -37,7 +37,7 @@
             background-color: #222;
         }
 
-        /* --- UI OVERLAYS & MENUS --- */
+        /* UI Overlays & Menus */
         .overlay {
             position: absolute;
             top: 0;
@@ -83,7 +83,6 @@
             border-color: #d35400;
         }
 
-        /* HUD Overlay */
         #hud {
             position: absolute;
             top: 0;
@@ -126,7 +125,6 @@
 <body>
 
 <div id="game-container">
-    <!-- Game Canvas -->
     <canvas id="gameCanvas" width="640" height="640"></canvas>
 
     <!-- In-Game HUD -->
@@ -136,12 +134,12 @@
         <div>Key: <span id="key-display" style="color:#3498db;">No</span></div>
     </div>
 
-    <!-- Dialogue / Message Box -->
+    <!-- Dialogue Box -->
     <div id="dialogue-box" class="hidden">
         <span id="dialogue-text">Welcome adventurer!</span>
     </div>
 
-    <!-- MAIN MENU -->
+    <!-- Main Menu -->
     <div id="main-menu" class="overlay">
         <h1>HERO'S QUEST</h1>
         <button class="menu-btn" onclick="startGame(false)">New Game</button>
@@ -149,24 +147,24 @@
         <button class="menu-btn" onclick="showScreen('controls-screen')">How to Play</button>
     </div>
 
-    <!-- HOW TO PLAY SCREEN -->
+    <!-- How to Play Screen -->
     <div id="controls-screen" class="overlay hidden">
         <h1>HOW TO PLAY</h1>
         <div class="instructions">
             <p><strong>Move:</strong> W, A, S, D or Arrow Keys</p>
             <p><strong>Pause / Menu:</strong> Press ESC</p>
             <br>
-            <p><strong>Tiles Legend:</strong></p>
-            <p><span style="color:#3498db;">🧙 Old Man:</span> Gives quest & Key</p>
-            <p><span style="color:#e74c3c;">👾 Goblin:</span> Fight for gold (-20 HP)</p>
+            <p><strong>Legend:</strong></p>
+            <p><span style="color:#3498db;">🧙 Wizard:</span> Offers the Key for 20 Gold</p>
+            <p><span style="color:#e74c3c;">👾 Goblin:</span> Fights for gold (-20 HP)</p>
             <p><span style="color:#2ecc71;">🧪 Potion:</span> Restores +30 HP</p>
             <p><span style="color:#f1c40f;">🪙 Gold:</span> Adds +10 Gold</p>
-            <p><span style="color:#e67e22;">🚪 Gate:</span> Requires Key to win!</p>
+            <p><span style="color:#e67e22;">🚪 Gate:</span> Escape route (Requires Key)</p>
         </div>
         <button class="menu-btn" onclick="showScreen('main-menu')">Back</button>
     </div>
 
-    <!-- PAUSE MENU -->
+    <!-- Pause Menu -->
     <div id="pause-menu" class="overlay hidden">
         <h1>PAUSED</h1>
         <button class="menu-btn" onclick="resumeGame()">Resume</button>
@@ -174,7 +172,7 @@
         <button class="menu-btn" onclick="quitToMainMenu()">Main Menu</button>
     </div>
 
-    <!-- GAME OVER / VICTORY MENU -->
+    <!-- Game End Screen -->
     <div id="end-screen" class="overlay hidden">
         <h1 id="end-title">GAME OVER</h1>
         <p id="end-msg" class="instructions"></p>
@@ -187,14 +185,12 @@
     const ctx = canvas.getContext("2d");
 
     const TILE_SIZE = 40;
-    const GRID_SIZE = 16; // 16x16 grid = 640x640 canvas
+    const GRID_SIZE = 16;
 
-    // Game States
     let isPaused = false;
     let inGame = false;
     let dialogueTimeout;
 
-    // Player State
     let player = {
         x: 1,
         y: 1,
@@ -203,8 +199,7 @@
         hasKey: false
     };
 
-    // World Map Layout (16x16)
-    // 0: Floor, 1: Wall, 2: Potion, 3: Gold, 4: Goblin, 5: NPC, 6: Locked Gate
+    // 0: Floor, 1: Wall, 2: Potion, 3: Gold, 4: Goblin, 5: Wizard, 6: Gate
     const initialMap = [
         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
         [1,0,0,0,1,0,3,0,0,0,0,1,0,3,0,1],
@@ -226,7 +221,6 @@
 
     let currentMap = [];
 
-    // --- NAVIGATION & UI FUNCTIONS ---
     function showScreen(screenId) {
         document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
         if (screenId) {
@@ -251,16 +245,14 @@
         }, 4000);
     }
 
-    // --- GAME ENGINE LOGIC ---
     function startGame(isLoad) {
         if (isLoad) {
             if (!localStorage.getItem('heroQuestSave')) {
-                alert("No saved game file found!");
+                alert("No saved game found!");
                 return;
             }
             loadGame();
         } else {
-            // New Game Setup
             player = { x: 1, y: 1, hp: 100, gold: 0, hasKey: false };
             currentMap = JSON.parse(JSON.stringify(initialMap));
         }
@@ -297,14 +289,13 @@
         showScreen('main-menu');
     }
 
-    // --- SAVE / LOAD SYSTEM ---
     function saveGame() {
         const saveData = {
             player: player,
             map: currentMap
         };
         localStorage.setItem('heroQuestSave', JSON.stringify(saveData));
-        showDialogue("Game saved successfully!");
+        showDialogue("Game saved to local storage!");
         setTimeout(() => resumeGame(), 1000);
     }
 
@@ -316,7 +307,6 @@
         }
     }
 
-    // --- INPUT HANDLING ---
     window.addEventListener('keydown', (e) => {
         if (e.key === "Escape") {
             togglePause();
@@ -338,54 +328,49 @@
         }
     });
 
-    // --- GAME LOGIC & INTERACTIONS ---
     function movePlayer(dx, dy) {
         const newX = player.x + dx;
         const newY = player.y + dy;
         const tile = currentMap[newY][newX];
 
-        // Wall Collision
         if (tile === 1) return;
 
-        // Interaction processing
-        if (tile === 2) { // Health Potion
+        if (tile === 2) {
             player.hp = Math.min(100, player.hp + 30);
             currentMap[newY][newX] = 0;
-            showDialogue("Found a Health Potion! Restored +30 HP.");
-        } else if (tile === 3) { // Gold
+            showDialogue("Health Potion! Restored +30 HP.");
+        } else if (tile === 3) {
             player.gold += 10;
             currentMap[newY][newX] = 0;
-            showDialogue("Picked up 10 Gold coins!");
-        } else if (tile === 4) { // Goblin
+            showDialogue("Picked up 10 Gold!");
+        } else if (tile === 4) {
             player.hp -= 20;
             player.gold += 15;
             currentMap[newY][newX] = 0;
-            showDialogue("Defeated a Goblin! Took 20 damage, gained 15 Gold.");
-        } else if (tile === 5) { // Wizard / Quest NPC
+            showDialogue("Defeated Goblin! Lost 20 HP, gained 15 Gold.");
+        } else if (tile === 5) {
             if (player.gold >= 20) {
                 player.hasKey = true;
-                showDialogue("Wizard: 'Aha! For 20 gold I will give you the Gate Key. Go escape!'");
+                showDialogue("Wizard: 'Here is the Gate Key. Go escape!'");
             } else {
-                showDialogue("Wizard: 'Bring me 20 Gold and I will grant you the Gate Key!'");
+                showDialogue("Wizard: 'Bring me 20 Gold for the Gate Key!'");
             }
-        } else if (tile === 6) { // Gate
+        } else if (tile === 6) {
             if (player.hasKey) {
-                endGame(true, "CONGRATULATIONS!", "You unlocked the gate and escaped the dungeon!");
+                endGame(true, "VICTORY!", "You unlocked the gate and escaped!");
                 return;
             } else {
-                showDialogue("The gate is locked tight! You need a Key to open it.");
+                showDialogue("The gate is locked! You need a Key.");
                 return;
             }
         }
 
-        // Apply Movement
         player.x = newX;
         player.y = newY;
         updateHUD();
 
-        // Check Death Condition
         if (player.hp <= 0) {
-            endGame(false, "GAME OVER", "You succumbed to the hazards of the dungeon!");
+            endGame(false, "GAME OVER", "You ran out of HP!");
         }
 
         render();
@@ -403,36 +388,32 @@
         showScreen('end-screen');
     }
 
-    // --- RENDERING ENGINE ---
     function render() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw Map
         for (let row = 0; row < GRID_SIZE; row++) {
             for (let col = 0; col < GRID_SIZE; col++) {
                 const tile = currentMap[row][col];
                 const x = col * TILE_SIZE;
                 const y = row * TILE_SIZE;
 
-                // Ground Tile Base
                 ctx.fillStyle = "#1e272c";
                 ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
 
-                // Tile Details
-                if (tile === 1) { // Wall
+                if (tile === 1) {
                     ctx.fillStyle = "#34495e";
                     ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
                     ctx.strokeStyle = "#2c3e50";
                     ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
-                } else if (tile === 2) { // Potion
+                } else if (tile === 2) {
                     drawEmoji("🧪", x, y);
-                } else if (tile === 3) { // Gold
+                } else if (tile === 3) {
                     drawEmoji("🪙", x, y);
-                } else if (tile === 4) { // Goblin
+                } else if (tile === 4) {
                     drawEmoji("👾", x, y);
-                } else if (tile === 5) { // Wizard
+                } else if (tile === 5) {
                     drawEmoji("🧙", x, y);
-                } else if (tile === 6) { // Gate
+                } else if (tile === 6) {
                     ctx.fillStyle = "#d35400";
                     ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
                     drawEmoji("🚪", x, y);
@@ -440,7 +421,6 @@
             }
         }
 
-        // Draw Player
         drawEmoji("🗡️", player.x * TILE_SIZE, player.y * TILE_SIZE);
     }
 
