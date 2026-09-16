@@ -2,7 +2,6 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
   border: none;
   outline: none;
   background-color: #007bff;
@@ -24,7 +23,7 @@
   transform: translateY(1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-.buttonStart:focus {
+.buttonStart:focus-visible {
   outline: 3px solid #80bdff;
   outline-offset: 2px;
 }
