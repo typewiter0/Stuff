@@ -13,17 +13,17 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.buttonStart:hover{
+.buttons:hover{
   background-color: #0056b3;
   transform: translateY(-1px);
   box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
 }
-.buttonStart:active{
+.buttons:active{
   background-color: #004085;
   transform: translateY(1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-.buttonStart:focus-visible {
+.buttons:focus-visible {
   outline: 3px solid #80bdff;
   outline-offset: 2px;
 }
