@@ -30,8 +30,9 @@
   font-weight: 700;
   font-size: 16px;
   font-style: italic;
-  font-transform: uppercase;
+  text-transform: uppercase;
   text-align: justify;
   line-height: 1.6;
   letter-spacing: 0.5px;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
