@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Soil Texture Triangle</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --clay-color: #f87171;
+      --silt-color: #38bdf8;
+      --sand-color: #facc15;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+      max-width: 1100px;
+      width: 100%;
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Sliders & Inputs */
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .slider-header span.clay { color: var(--clay-color); }
+    .slider-header span.silt { color: var(--silt-color); }
+    .slider-header span.sand { color: var(--sand-color); }
+
+    .input-number-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .input-number-wrap input {
+      width: 55px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #fff;
+      padding: 4px 6px;
+      font-size: 0.9rem;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #334155;
+      outline: none;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .total-badge {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .total-badge.valid { border-color: #22c55e; color: #4ade80; }
+    .total-badge.invalid { border-color: #ef4444; color: #f87171; }
+
+    .btn-auto {
+      background: var(--border);
+      color: #fff;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .btn-auto:hover {
+      background: #475569;
+    }
+
+    /* Presets */
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .btn-preset {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-preset:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    /* Result Card */
+    .result-card {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .soil-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .soil-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .properties-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .prop-item {
+      background: var(--card-bg);
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+    }
+
+    .prop-item label {
+      display: block;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .prop-item span {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Chart Area */
+    .chart-panel {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      overflow: hidden;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      max-width: 650px;
+      user-select: none;
+    }
+
+    .region-poly {
+      stroke: rgba(255, 255, 255, 0.35);
+      stroke-width: 1;
+      transition: opacity 0.2s, fill-opacity 0.2s;
+      cursor: pointer;
+    }
+
+    .region-poly:hover {
+      fill-opacity: 0.85 !important;
+      stroke: #fff;
+      stroke-width: 2;
+    }
+
+    .region-poly.active {
+      fill-opacity: 0.9 !important;
+      stroke: #fff;
+      stroke-width: 2.5;
+    }
+
+    .grid-line {
+      stroke: rgba(255, 255, 255, 0.15);
+      stroke-dasharray: 2 2;
+      pointer-events: none;
+    }
+
+    .axis-label {
+      font-size: 11px;
+      fill: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .axis-title {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .region-label {
+      font-size: 9px;
+      fill: #ffffff;
+      font-weight: 600;
+      text-anchor: middle;
+      pointer-events: none;
+      text-shadow: 0px 1px 3px rgba(0,0,0,0.8);
+    }
+
+    .marker-point {
+      fill: #ffffff;
+      stroke: #000;
+      stroke-width: 2;
+      transition: transform 0.1s ease-out;
+    }
+
+    .marker-pulse {
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 1.5;
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { r: 6; opacity: 1; }
+      100% { r: 22; opacity: 0; }
+    }
+
+    .guide-line {
+      stroke: #ffffff;
+      stroke-width: 1.5;
+      stroke-dasharray: 4 3;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: absolute;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: #fff;
+      pointer-events: none;
+      display: none;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Soil Texture Triangle</h1>
+    <p>USDA Soil Classification & Interactive Ternary Plot</p>
+  </header>
+
+  <div class="container">
+    <!-- Left Controls Panel -->
+    <div class="panel">
+      <div>
+        <div class="section-title">Composition Inputs</div>
+        <div class="input-group">
+          
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="clay">Clay (%)</span>
+              <div class="input-number-wrap">
+                <input type="number" id="num-clay" min="0" max="100" value="20" step="0.5"> %
+              </div>
+            </div>
+            <input type="range" id="slide-clay" min="0" max="100" value="20" step="0.5">
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="silt">Silt (%)</span>
+              <div class="input-number-wrap">
+                <input type="number" id="num-silt" min="0" max="100" value="40" step="0.5"> %
+              </div>
+            </div>
+            <input type="range" id="slide-silt" min="0" max="100" value="40" step="0.5">
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="sand">Sand (%)</span>
+              <div class="input-number-wrap">
+                <input type="number" id="num-sand" min="0" max="100" value="40" step="0.5"> %
+              </div>
+            </div>
+            <input type="range" id="slide-sand" min="0" max="100" value="40" step="0.5">
+          </div>
+
+          <div class="total-badge valid" id="total-badge">
+            <span>Total: <strong id="total-val">100</strong>%</span>
+            <button class="btn-auto" id="btn-normalize" style="display:none;">Normalize to 100%</button>
+          </div>
+
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Presets</div>
+        <div class="presets">
+          <button class="btn-preset" data-c="20" data-si="40" data-sa="40">Ideal Loam</button>
+          <button class="btn-preset" data-c="60" data-si="20" data-sa="20">Heavy Clay</button>
+          <button class="btn-preset" data-c="5" data-si="5" data-sa="90">Sand</button>
+          <button class="btn-preset" data-c="15" data-si="65" data-sa="20">Silt Loam</button>
+          <button class="btn-preset" data-c="28" data-si="12" data-sa="60">Sandy Clay Loam</button>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div class="soil-title" id="res-title">Loam</div>
+        <div class="soil-desc" id="res-desc">Equal balance of sand, silt, and clay. Highly fertile and ideal for agricultural cultivation.</div>
+        
+        <div class="properties-grid">
+          <div class="prop-item">
+            <label>Drainage</label>
+            <span id="prop-drainage">Moderate</span>
+          </div>
+          <div class="prop-item">
+            <label>Water Retention</label>
+            <span id="prop-retention">Medium-High</span>
+          </div>
+          <div class="prop-item">
+            <label>Aeration</label>
+            <span id="prop-aeration">Good</span>
+          </div>
+          <div class="prop-item">
+            <label>Workability</label>
+            <span id="prop-workability">Easy</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Chart Panel -->
+    <div class="chart-panel">
+      <div class="tooltip" id="tooltip"></div>
+      <svg id="triangle-svg" viewBox="0 0 600 520">
+        <!-- SVG content rendered via JS -->
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    // --- USDA SOIL DATA & POLYGON DEFINITIONS ---
+    // Standard normalized coordinates (Clay, Silt, Sand)
+    const SOILS = [
+      {
+        id: "clay",
+        name: "Clay",
+        color: "#ef4444",
+        pts: [[100,0,0], [55,0,45], [35,20,45], [40,20,40], [40,40,20], [60,40,0]],
+        labelPos: [58, 18, 24],
+        desc: "High nutrient & water retention, but poorly drained and heavy to cultivate when wet.",
+        drainage: "Very Poor", retention: "Very High", aeration: "Poor", workability: "Difficult"
+      },
+      {
+        id: "sandy-clay",
+        name: "Sandy Clay",
+        color: "#f97316",
+        pts: [[55,0,45], [35,0,65], [35,20,45]],
+        labelPos: [42, 6, 52],
+        desc: "Sticky soil with high water capacity, but contains enough sand to feel gritty.",
+        drainage: "Poor", retention: "High", aeration: "Fair", workability: "Moderate"
+      },
+      {
+        id: "silty-clay",
+        name: "Silty Clay",
+        color: "#eab308",
+        pts: [[60,40,0], [40,40,20], [40,60,0]],
+        labelPos: [47, 47, 6],
+        desc: "Smooth and sticky soil with high moisture holding capacity. Prone to compaction.",
+        drainage: "Poor", retention: "High", aeration: "Poor", workability: "Difficult"
+      },
+      {
+        id: "silty-clay-loam",
+        name: "Silty Clay Loam",
+        color: "#84cc16",
+        pts: [[40,40,20], [27,40,33], [27,73,0], [40,60,0]],
+        labelPos: [33, 53, 14],
+        desc: "High fertility and moisture capacity with smooth texture. Good for crops if uncompacted.",
+        drainage: "Moderately Slow", retention: "High", aeration: "Moderate", workability: "Moderate"
+      },
+      {
+        id: "clay-loam",
+        name: "Clay Loam",
+        color: "#10b981",
+        pts: [[40,20,40], [27,21,52], [27,45,28], [40,40,20]],
+        labelPos: [33, 31, 36],
+        desc: "Well-balanced nutrient holding capacity with good structure for farming.",
+        drainage: "Moderate", retention: "High", aeration: "Moderate", workability: "Moderate"
+      },
+      {
+        id: "sandy-clay-loam",
+        name: "Sandy Clay Loam",
+        color: "#14b8a6",
+        pts: [[35,0,65], [20,0,80], [20,28,52], [27,21,52], [35,20,45]],
+        labelPos: [27, 12, 61],
+        desc: "Good moisture retention with better drainage than heavy clay loams.",
+        drainage: "Moderate", retention: "Medium", aeration: "Good", workability: "Moderate"
+      },
+      {
+        id: "loam",
+        name: "Loam",
+        color: "#06b6d4",
+        pts: [[7,41,52], [20,28,52], [27,21,52], [27,45,28], [7,50,43]],
+        labelPos: [17, 37, 46],
+        desc: "Ideal agricultural soil. Balanced drainage, aeration, and nutrient retention.",
+        drainage: "Good", retention: "Medium-High", aeration: "Good", workability: "Easy"
+      },
+      {
+        id: "sandy-loam",
+        name: "Sandy Loam",
+        color: "#3b82f6",
+        pts: [[0,30,70], [15,15,70], [15,0,85], [20,0,80], [20,28,52], [7,41,52], [7,50,43], [0,50,50]],
+        labelPos: [9, 18, 73],
+        desc: "Warms quickly in spring, easy to till, and drains well. Requires frequent organic inputs.",
+        drainage: "Well Drained", retention: "Low-Medium", aeration: "Excellent", workability: "Very Easy"
+      },
+      {
+        id: "silt-loam",
+        name: "Silt Loam",
+        color: "#6366f1",
+        pts: [[0,50,50], [7,50,43], [27,45,28], [27,73,0], [12,88,0], [12,80,8], [0,80,20]],
+        labelPos: [12, 65, 23],
+        desc: "Smooth feeling soil with high water holding capacity. Highly fertile but easily eroded.",
+        drainage: "Moderate", retention: "High", aeration: "Moderate", workability: "Easy"
+      },
+      {
+        id: "silt",
+        name: "Silt",
+        color: "#a855f7",
+        pts: [[0,80,20], [12,80,8], [12,88,0], [0,100,0]],
+        labelPos: [5, 90, 5],
+        desc: "Feels floury and smooth when dry. Holds water well but subject to crusting and erosion.",
+        drainage: "Moderate", retention: "High", aeration: "Moderate", workability: "Easy"
+      },
+      {
+        id: "loamy-sand",
+        name: "Loamy Sand",
+        color: "#ec4899",
+        pts: [[0,15,85], [10,10,80], [15,0,85], [15,15,70], [0,30,70]],
+        labelPos: [5, 12, 83],
+        desc: "Gritty feel with slightly better nutrient retention than pure sand.",
+        drainage: "Rapid", retention: "Low", aeration: "Excellent", workability: "Very Easy"
+      },
+      {
+        id: "sand",
+        name: "Sand",
+        color: "#f43f5e",
+        pts: [[0,0,100], [10,0,90], [10,10,80], [0,15,85]],
+        labelPos: [3, 4, 93],
+        desc: "Coarse and gritty. Drains rapidly and has very low nutrient holding capacity.",
+        drainage: "Excessive", retention: "Very Low", aeration: "Excessive", workability: "Very Easy"
+      }
+    ];
+
+    // --- GEOMETRY CONVERSION FUNCTIONS ---
+    // SVG Dimensions
+    const SVG_W = 600;
+    const SVG_H = 520;
+    const L = 440; // Triangle base length
+    const H = L * (Math.sqrt(3) / 2); // 381.05
+    const X0 = 80;  // Bottom Left X (100% Sand)
+    const Y0 = 440; // Bottom Left Y
+
+    // Convert (Clay%, Silt%, Sand%) to SVG Canvas (x, y)
+    function ternaryToSvg(c, si, sa) {
+      const x = X0 + ((si + 0.5 * c) / 100) * L;
+      const y = Y0 - (c / 100) * H;
+      return [x, y];
+    }
+
+    // Convert SVG Canvas (x, y) to (Clay%, Silt%, Sand%)
+    function svgToTernary(x, y) {
+      let c = ((Y0 - y) / H) * 100;
+      let si = (((x - X0) / L) * 100) - (0.5 * c);
+      let sa = 100 - c - si;
+      return [c, si, sa];
+    }
+
+    // Point in Polygon Test (Ray Casting)
+    function pointInPoly(pt, polyPts) {
+      const x = pt[0], y = pt[1];
+      let inside = false;
+      for (let i = 0, j = polyPts.length - 1; i < polyPts.length; j = i++) {
+        const xi = polyPts[i][0], yi = polyPts[i][1];
+        const xj = polyPts[j][0], yj = polyPts[j][1];
+        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    // --- STATE MANAGEMENT ---
+    let state = {
+      clay: 20,
+      silt: 40,
+      sand: 40,
+      activeSoil: null
+    };
+
+    // --- INITIALIZE SVG CHART ---
+    const svg = document.getElementById('triangle-svg');
+
+    function renderTriangle() {
+      svg.innerHTML = '';
+
+      // Main Outer Triangle
+      const [topX, topY] = ternaryToSvg(100, 0, 0);
+      const [blX, blY] = ternaryToSvg(0, 0, 100);
+      const [brX, brY] = ternaryToSvg(0, 100, 0);
+
+      // 1. Render Regions
+      SOILS.forEach(soil => {
+        const svgPts = soil.pts.map(p => ternaryToSvg(p[0], p[1], p[2]));
+        const ptsString = svgPts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', ptsString);
+        poly.setAttribute('class', 'region-poly');
+        poly.setAttribute('id', `region-${soil.id}`);
+        poly.setAttribute('fill', soil.color);
+        poly.setAttribute('fill-opacity', '0.45');
+        
+        // Hover/Click events
+        poly.addEventListener('mouseenter', (e) => showTooltip(e, soil.name));
+        poly.addEventListener('mousemove', (e) => moveTooltip(e));
+        poly.addEventListener('mouseleave', hideTooltip);
+        poly.addEventListener('click', (e) => handleSvgClick(e));
+
+        svg.appendChild(poly);
+
+        // Region Label
+        const [lblX, lblY] = ternaryToSvg(...soil.labelPos);
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', lblX);
+        text.setAttribute('y', lblY);
+        text.setAttribute('class', 'region-label');
+        text.textContent = soil.name;
+        svg.appendChild(text);
+      });
+
+      // 2. Grid Lines (10% increments)
+      for (let i = 10; i < 100; i += 10) {
+        // Horizontal lines (Clay)
+        let p1 = ternaryToSvg(i, 0, 100 - i);
+        let p2 = ternaryToSvg(i, 100 - i, 0);
+        drawGridLine(p1, p2);
+
+        // Silt lines (slant down-left)
+        p1 = ternaryToSvg(0, i, 100 - i);
+        p2 = ternaryToSvg(100 - i, i, 0);
+        drawGridLine(p1, p2);
+
+        // Sand lines (slant up-left)
+        p1 = ternaryToSvg(0, 100 - i, i);
+        p2 = ternaryToSvg(100 - i, 0, i);
+        drawGridLine(p1, p2);
+
+        // Axis Tick Labels
+        drawTickLabel(i);
+      }
+
+      // Outer Boundary Line
+      const outerPoly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      outerPoly.setAttribute('points', `${blX},${blY} ${brX},${brY} ${topX},${topY}`);
+      outerPoly.setAttribute('fill', 'none');
+      outerPoly.setAttribute('stroke', '#cbd5e1');
+      outerPoly.setAttribute('stroke-width', '2');
+      svg.appendChild(outerPoly);
+
+      // Axis Titles
+      drawAxisTitles();
+
+      // Guidelines group (dynamic)
+      const guideGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      guideGroup.setAttribute('id', 'guide-group');
+      svg.appendChild(guideGroup);
+
+      // Point Marker & Pulse Ring
+      const pulseCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      pulseCircle.setAttribute('id', 'marker-pulse');
+      pulseCircle.setAttribute('class', 'marker-pulse');
+      svg.appendChild(pulseCircle);
+
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      marker.setAttribute('id', 'marker-point');
+      marker.setAttribute('class', 'marker-point');
+      marker.setAttribute('r', '5');
+      svg.appendChild(marker);
+
+      // Background click event for SVG
+      svg.addEventListener('click', handleSvgClick);
+    }
+
+    function drawGridLine(p1, p2) {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', p1[0]);
+      line.setAttribute('y1', p1[1]);
+      line.setAttribute('x2', p2[0]);
+      line.setAttribute('y2', p2[1]);
+      line.setAttribute('class', 'grid-line');
+      svg.appendChild(line);
+    }
+
+    function drawTickLabel(val) {
+      // Clay axis ticks (left edge)
+      let [cx, cy] = ternaryToSvg(val, 0, 100 - val);
+      let t1 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t1.setAttribute('x', cx - 12);
+      t1.setAttribute('y', cy + 4);
+      t1.setAttribute('class', 'axis-label');
+      t1.setAttribute('text-anchor', 'end');
+      t1.textContent = val;
+      svg.appendChild(t1);
+
+      // Silt axis ticks (right edge)
+      let [sx, sy] = ternaryToSvg(100 - val, val, 0);
+      let t2 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t2.setAttribute('x', sx + 12);
+      t2.setAttribute('y', sy + 4);
+      t2.setAttribute('class', 'axis-label');
+      t2.setAttribute('text-anchor', 'start');
+      t2.textContent = val;
+      svg.appendChild(t2);
+
+      // Sand axis ticks (bottom edge)
+      let [sax, say] = ternaryToSvg(0, 100 - val, val);
+      let t3 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t3.setAttribute('x', sax);
+      t3.setAttribute('y', say + 18);
+      t3.setAttribute('class', 'axis-label');
+      t3.setAttribute('text-anchor', 'middle');
+      t3.textContent = val;
+      svg.appendChild(t3);
+    }
+
+    function drawAxisTitles() {
+      // Clay Title (Left)
+      const clayTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      clayTitle.setAttribute('x', '110');
+      clayTitle.setAttribute('y', '220');
+      clayTitle.setAttribute('class', 'axis-title');
+      clayTitle.setAttribute('fill', 'var(--clay-color)');
+      clayTitle.setAttribute('transform', 'rotate(-60 110 220)');
+      clayTitle.setAttribute('text-anchor', 'middle');
+      clayTitle.textContent = "← Clay Percentage (%)";
+      svg.appendChild(clayTitle);
+
+      // Silt Title (Right)
+      const siltTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      siltTitle.setAttribute('x', '490');
+      siltTitle.setAttribute('y', '220');
+      siltTitle.setAttribute('class', 'axis-title');
+      siltTitle.setAttribute('fill', 'var(--silt-color)');
+      siltTitle.setAttribute('transform', 'rotate(60 490 220)');
+      siltTitle.setAttribute('text-anchor', 'middle');
+      siltTitle.textContent = "Silt Percentage (%) →";
+      svg.appendChild(siltTitle);
+
+      // Sand Title (Bottom)
+      const sandTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      sandTitle.setAttribute('x', '300');
+      sandTitle.setAttribute('y', '485');
+      sandTitle.setAttribute('class', 'axis-title');
+      sandTitle.setAttribute('fill', 'var(--sand-color)');
+      sandTitle.setAttribute('text-anchor', 'middle');
+      sandTitle.textContent = "← Sand Percentage (%)";
+      svg.appendChild(sandTitle);
+    }
+
+    // --- INTERACTION HANDLERS ---
+    function handleSvgClick(e) {
+      const rect = svg.getBoundingClientRect();
+      const scaleX = SVG_W / rect.width;
+      const scaleY = SVG_H / rect.height;
+
+      const mouseX = (e.clientX - rect.left) * scaleX;
+      const mouseY = (e.clientY - rect.top) * scaleY;
+
+      let [c, si, sa] = svgToTernary(mouseX, mouseY);
+
+      // Validate inside triangle
+      if (c >= 0 && si >= 0 && sa >= 0 && c <= 100 && si <= 100 && sa <= 100) {
+        // Clamp and update
+        c = Math.round(c * 2) / 2;
+        si = Math.round(si * 2) / 2;
+        sa = Math.round((100 - c - si) * 2) / 2;
+
+        updateState(c, si, sa);
+      }
+    }
+
+    function updateState(c, si, sa) {
+      state.clay = Math.max(0, Math.min(100, c));
+      state.silt = Math.max(0, Math.min(100, si));
+      state.sand = Math.max(0, Math.min(100, sa));
+
+      // Update Sliders & Inputs
+      document.getElementById('slide-clay').value = state.clay;
+      document.getElementById('num-clay').value = state.clay;
+
+      document.getElementById('slide-silt').value = state.silt;
+      document.getElementById('num-silt').value = state.silt;
+
+      document.getElementById('slide-sand').value = state.sand;
+      document.getElementById('num-sand').value = state.sand;
+
+      updateUI();
+    }
+
+    function updateUI() {
+      const sum = state.clay + state.silt + state.sand;
+      const totalBadge = document.getElementById('total-badge');
+      const totalVal = document.getElementById('total-val');
+      const btnNormalize = document.getElementById('btn-normalize');
+
+      totalVal.textContent = sum.toFixed(1);
+
+      if (Math.abs(sum - 100) < 0.1) {
+        totalBadge.className = 'total-badge valid';
+        btnNormalize.style.display = 'none';
+      } else {
+        totalBadge.className = 'total-badge invalid';
+        btnNormalize.style.display = 'block';
+      }
+
+      // Determine Soil Classification using Point-In-Polygon on Screen Coordinates
+      const [ptX, ptY] = ternaryToSvg(state.clay, state.silt, state.sand);
+      let matchedSoil = null;
+
+      SOILS.forEach(soil => {
+        const svgPts = soil.pts.map(p => ternaryToSvg(p[0], p[1], p[2]));
+        if (pointInPoly([ptX, ptY], svgPts)) {
+          matchedSoil = soil;
+        }
+      });
+
+      state.activeSoil = matchedSoil;
+
+      // Update Region Highlights
+      document.querySelectorAll('.region-poly').forEach(p => p.classList.remove('active'));
+      if (matchedSoil) {
+        const activePoly = document.getElementById(`region-${matchedSoil.id}`);
+        if (activePoly) activePoly.classList.add('active');
+
+        // Update Info Card
+        document.getElementById('res-title').textContent = matchedSoil.name;
+        document.getElementById('res-title').style.color = matchedSoil.color;
+        document.getElementById('res-desc').textContent = matchedSoil.desc;
+        document.getElementById('prop-drainage').textContent = matchedSoil.drainage;
+        document.getElementById('prop-retention').textContent = matchedSoil.retention;
+        document.getElementById('prop-aeration').textContent = matchedSoil.aeration;
+        document.getElementById('prop-workability').textContent = matchedSoil.workability;
+      } else {
+        document.getElementById('res-title').textContent = "Out of Bounds";
+        document.getElementById('res-title').style.color = "#ef4444";
+        document.getElementById('res-desc').textContent = "Percentages must add up to exactly 100% to fall inside the classification triangle.";
+      }
+
+      // Update Marker Position
+      const marker = document.getElementById('marker-point');
+      const pulse = document.getElementById('marker-pulse');
+
+      if (marker && pulse) {
+        marker.setAttribute('cx', ptX);
+        marker.setAttribute('cy', ptY);
+        pulse.setAttribute('cx', ptX);
+        pulse.setAttribute('cy', ptY);
+      }
+
+      // Update Coordinate Guidelines
+      updateGuidelines(ptX, ptY);
+    }
+
+    function updateGuidelines(px, py) {
+      const guideGroup = document.getElementById('guide-group');
+      if (!guideGroup) return;
+      guideGroup.innerHTML = '';
+
+      if (state.clay < 0 || state.clay > 100 || state.silt < 0 || state.silt > 100 || state.sand < 0 || state.sand > 100) return;
+
+      // 1. Line to Clay axis (horizontal)
+      let pClay = ternaryToSvg(state.clay, 0, 100 - state.clay);
+      drawGuide(px, py, pClay[0], pClay[1], 'var(--clay-color)');
+
+      // 2. Line to Silt axis
+      let pSilt = ternaryToSvg(100 - state.silt, state.silt, 0);
+      drawGuide(px, py, pSilt[0], pSilt[1], 'var(--silt-color)');
+
+      // 3. Line to Sand axis
+      let pSand = ternaryToSvg(0, 100 - state.sand, state.sand);
+      drawGuide(px, py, pSand[0], pSand[1], 'var(--sand-color)');
+    }
+
+    function drawGuide(x1, y1, x2, y2, color) {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x1);
+      line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2);
+      line.setAttribute('y2', y2);
+      line.setAttribute('class', 'guide-line');
+      line.setAttribute('stroke', color);
+      document.getElementById('guide-group').appendChild(line);
+    }
+
+    // --- TOOLTIP HELPERS ---
+    const tooltip = document.getElementById('tooltip');
+
+    function showTooltip(e, text) {
+      tooltip.style.display = 'block';
+      tooltip.textContent = text;
+      moveTooltip(e);
+    }
+
+    function moveTooltip(e) {
+      const rect = document.querySelector('.chart-panel').getBoundingClientRect();
+      tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
+      tooltip.style.top = (e.clientY - rect.top - 28) + 'px';
+    }
+
+    function hideTooltip() {
+      tooltip.style.display = 'none';
+    }
+
+    // --- AUTO-BALANCING SLIDER HANDLERS ---
+    function handleSliderInput(changed) {
+      let c = parseFloat(document.getElementById('slide-clay').value);
+      let si = parseFloat(document.getElementById('slide-silt').value);
+      let sa = parseFloat(document.getElementById('slide-sand').value);
+
+      if (changed === 'clay') {
+        let rem = 100 - c;
+        let otherSum = si + sa;
+        if (otherSum > 0) {
+          si = rem * (si / otherSum);
+          sa = rem * (sa / otherSum);
+        } else {
+          si = rem / 2;
+          sa = rem / 2;
+        }
+      } else if (changed === 'silt') {
+        let rem = 100 - si;
+        let otherSum = c + sa;
+        if (otherSum > 0) {
+          c = rem * (c / otherSum);
+          sa = rem * (sa / otherSum);
+        } else {
+          c = rem / 2;
+          sa = rem / 2;
+        }
+      } else if (changed === 'sand') {
+        let rem = 100 - sa;
+        let otherSum = c + si;
+        if (otherSum > 0) {
+          c = rem * (c / otherSum);
+          si = rem * (si / otherSum);
+        } else {
+          c = rem / 2;
+          si = rem / 2;
+        }
+      }
+
+      updateState(Math.round(c * 10) / 10, Math.round(si * 10) / 10, Math.round(sa * 10) / 10);
+    }
+
+    function handleNumberInput() {
+      let c = parseFloat(document.getElementById('num-clay').value) || 0;
+      let si = parseFloat(document.getElementById('num-silt').value) || 0;
+      let sa = parseFloat(document.getElementById('num-sand').value) || 0;
+
+      state.clay = c;
+      state.silt = si;
+      state.sand = sa;
+
+      document.getElementById('slide-clay').value = c;
+      document.getElementById('slide-silt').value = si;
+      document.getElementById('slide-sand').value = sa;
+
+      updateUI();
+    }
+
+    function normalizeInputs() {
+      let sum = state.clay + state.silt + state.sand;
+      if (sum <= 0) return updateState(33.3, 33.3, 33.4);
+
+      let c = (state.clay / sum) * 100;
+      let si = (state.silt / sum) * 100;
+      let sa = 100 - c - si;
+
+      updateState(Math.round(c * 10) / 10, Math.round(si * 10) / 10, Math.round(sa * 10) / 10);
+    }
+
+    // --- EVENT LISTENERS ---
+    document.getElementById('slide-clay').addEventListener('input', () => handleSliderInput('clay'));
+    document.getElementById('slide-silt').addEventListener('input', () => handleSliderInput('silt'));
+    document.getElementById('slide-sand').addEventListener('input', () => handleSliderInput('sand'));
+
+    document.getElementById('num-clay').addEventListener('change', handleNumberInput);
+    document.getElementById('num-silt').addEventListener('change', handleNumberInput);
+    document.getElementById('num-sand').addEventListener('change', handleNumberInput);
+
+    document.getElementById('btn-normalize').addEventListener('click', normalizeInputs);
+
+    // Preset Buttons
+    document.querySelectorAll('.btn-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const c = parseFloat(btn.dataset.c);
+        const si = parseFloat(btn.dataset.si);
+        const sa = parseFloat(btn.dataset.sa);
+        updateState(c, si, sa);
+      });
+    });
+
+    // Initialize Chart & UI
+    renderTriangle();
+    updateUI();
+  </script>
+</body>
+</html>
